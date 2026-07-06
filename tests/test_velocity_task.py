@@ -2,7 +2,11 @@
 
 import pytest
 
-from mjlab.asset_zoo.robots import G1_ACTION_SCALE, GO1_ACTION_SCALE
+from mjlab.asset_zoo.robots import (
+  G1_23DOF_ACTION_SCALE,
+  G1_ACTION_SCALE,
+  GO1_ACTION_SCALE,
+)
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.tasks.registry import list_tasks, load_env_cfg
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
@@ -18,6 +22,18 @@ def velocity_task_ids() -> list[str]:
 def g1_velocity_task_ids(velocity_task_ids: list[str]) -> list[str]:
   """Get all G1 velocity task IDs."""
   return [t for t in velocity_task_ids if "G1" in t]
+
+
+@pytest.fixture(scope="module")
+def g1_29dof_velocity_task_ids(g1_velocity_task_ids: list[str]) -> list[str]:
+  """Get all 29-DoF G1 velocity task IDs."""
+  return [t for t in g1_velocity_task_ids if "23Dof" not in t]
+
+
+@pytest.fixture(scope="module")
+def g1_23dof_velocity_task_ids(velocity_task_ids: list[str]) -> list[str]:
+  """Get all 23-DoF G1 velocity task IDs."""
+  return [t for t in velocity_task_ids if "G1-23Dof" in t]
 
 
 @pytest.fixture(scope="module")
@@ -125,6 +141,7 @@ def test_rough_velocity_training_has_curriculum_enabled() -> None:
   """Rough velocity training tasks should have terrain curriculum enabled."""
   rough_training_tasks = [
     "Mjlab-Velocity-Rough-Unitree-G1",
+    "Mjlab-Velocity-Rough-Unitree-G1-23Dof",
     "Mjlab-Velocity-Rough-Unitree-Go1",
   ]
 
@@ -145,6 +162,7 @@ def test_rough_velocity_play_has_curriculum_disabled() -> None:
   """Rough velocity play tasks should have terrain curriculum disabled."""
   rough_training_tasks = [
     "Mjlab-Velocity-Rough-Unitree-G1",
+    "Mjlab-Velocity-Rough-Unitree-G1-23Dof",
     "Mjlab-Velocity-Rough-Unitree-Go1",
   ]
 
@@ -163,9 +181,11 @@ def test_rough_velocity_play_has_curriculum_disabled() -> None:
     )
 
 
-def test_g1_velocity_has_correct_action_scale(g1_velocity_task_ids: list[str]) -> None:
-  """G1 velocity tasks should use G1_ACTION_SCALE."""
-  for task_id in g1_velocity_task_ids:
+def test_g1_velocity_has_correct_action_scale(
+  g1_29dof_velocity_task_ids: list[str],
+) -> None:
+  """29-DoF G1 velocity tasks should use G1_ACTION_SCALE."""
+  for task_id in g1_29dof_velocity_task_ids:
     cfg = load_env_cfg(task_id)
 
     assert "joint_pos" in cfg.actions, f"Task {task_id} missing 'joint_pos' action"
@@ -197,3 +217,14 @@ def test_go1_velocity_has_correct_action_scale(
     assert joint_pos_action.scale == GO1_ACTION_SCALE, (
       f"Task {task_id} action scale mismatch, expected GO1_ACTION_SCALE"
     )
+
+
+def test_g1_23dof_velocity_has_correct_action_scale(
+  g1_23dof_velocity_task_ids: list[str],
+) -> None:
+  """23-DoF G1 velocity tasks should use G1_23DOF_ACTION_SCALE."""
+  for task_id in g1_23dof_velocity_task_ids:
+    cfg = load_env_cfg(task_id)
+    joint_pos_action = cfg.actions["joint_pos"]
+    assert isinstance(joint_pos_action, JointPositionActionCfg)
+    assert joint_pos_action.scale == G1_23DOF_ACTION_SCALE
