@@ -9,6 +9,7 @@ from mjlab.asset_zoo.robots import (
 )
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.tasks.registry import list_tasks, load_env_cfg
+from mjlab.tasks.velocity import mdp
 from mjlab.tasks.velocity.mdp import UniformVelocityCommandCfg
 
 
@@ -228,3 +229,28 @@ def test_g1_23dof_velocity_has_correct_action_scale(
     joint_pos_action = cfg.actions["joint_pos"]
     assert isinstance(joint_pos_action, JointPositionActionCfg)
     assert joint_pos_action.scale == G1_23DOF_ACTION_SCALE
+
+
+def test_g1_23dof_velocity_has_stability_reward_weights(
+  g1_23dof_velocity_task_ids: list[str],
+) -> None:
+  """23-DoF G1 velocity tasks should use the aligned stability rewards."""
+  for task_id in g1_23dof_velocity_task_ids:
+    cfg = load_env_cfg(task_id)
+
+    assert cfg.rewards["track_linear_velocity"].weight == 1.0
+    assert cfg.rewards["track_angular_velocity"].weight == 1.0
+    assert cfg.rewards["track_angular_velocity"].params["xy_weight"] == 0.05
+    assert "upright" not in cfg.rewards
+    assert cfg.rewards["body_orientation_l2"].weight == -1.0
+    assert cfg.rewards["body_orientation_l2"].func is mdp.body_orientation_l2
+    assert cfg.rewards["body_orientation_l2"].params["asset_cfg"].body_names == (
+      "torso_link",
+    )
+    assert cfg.rewards["pose"].params["walking_threshold"] == 0.1
+    assert cfg.rewards["body_ang_vel"].weight == -0.05
+    assert cfg.rewards["angular_momentum"].weight == -0.02
+    assert cfg.rewards["joint_acc_l2"].weight == -2.5e-7
+    assert cfg.rewards["joint_acc_l2"].func is mdp.joint_acc_l2
+    assert "dof_pos_limits" not in cfg.rewards
+    assert cfg.rewards["joint_pos_limits"].weight == -10.0

@@ -26,6 +26,9 @@ Changed
 Fixed
 ^^^^^
 
+- Fixed the Unitree G1 23-DoF velocity tasks using a partially migrated reward
+  contract, including tracking, torso orientation, posture threshold, joint
+  acceleration, joint-limit, angular-velocity, and momentum terms.
 - Fixed ``mdp.bad_orientation`` returning NaN when float32 rounding in
   ``quat_apply_inverse`` pushed the projected-gravity z-component slightly
   outside ``[-1, 1]``, making ``torch.acos`` return NaN and silently
