@@ -8,6 +8,9 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added the Own humanoid asset with robot-specific actuator parameters and
+  independently tunable flat/rough velocity tasks based on the Unitree G1
+  23-DoF task baseline.
 - Added ``MeshCfg``, a spec editor that matches mesh assets by name and edits
   their asset-level attributes. The first attribute is ``maxhullvert``, which
   caps the collision convex hull's vertex count to lower narrowphase cost.

@@ -6,7 +6,9 @@ from mjlab.asset_zoo.robots import (
   G1_23DOF_ACTION_SCALE,
   G1_ACTION_SCALE,
   GO1_ACTION_SCALE,
+  OWN_ACTION_SCALE,
 )
+from mjlab.asset_zoo.robots.own import own_constants
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.tasks.registry import list_tasks, load_env_cfg
 from mjlab.tasks.velocity import mdp
@@ -41,6 +43,12 @@ def g1_23dof_velocity_task_ids(velocity_task_ids: list[str]) -> list[str]:
 def go1_velocity_task_ids(velocity_task_ids: list[str]) -> list[str]:
   """Get all Go1 velocity task IDs."""
   return [t for t in velocity_task_ids if "Go1" in t]
+
+
+@pytest.fixture(scope="module")
+def own_velocity_task_ids(velocity_task_ids: list[str]) -> list[str]:
+  """Get all Own velocity task IDs."""
+  return [t for t in velocity_task_ids if t.endswith("-Own")]
 
 
 @pytest.fixture(scope="module")
@@ -105,6 +113,18 @@ def test_go1_velocity_has_required_sensors(go1_velocity_task_ids: list[str]) -> 
         assert name in sensor_names, f"Task {task_id} missing {name} sensor"
 
 
+def test_own_velocity_has_required_sensors(
+  own_velocity_task_ids: list[str],
+) -> None:
+  """Own velocity tasks should define the required sensor contract."""
+  for task_id in own_velocity_task_ids:
+    cfg = load_env_cfg(task_id)
+    assert cfg.scene.sensors is not None
+    sensor_names = {sensor.name for sensor in cfg.scene.sensors}
+    assert "feet_ground_contact" in sensor_names
+    assert "self_collision" in sensor_names
+
+
 def test_flat_velocity_tasks_have_plane_terrain(
   flat_velocity_task_ids: list[str],
 ) -> None:
@@ -144,6 +164,7 @@ def test_rough_velocity_training_has_curriculum_enabled() -> None:
     "Mjlab-Velocity-Rough-Unitree-G1",
     "Mjlab-Velocity-Rough-Unitree-G1-23Dof",
     "Mjlab-Velocity-Rough-Unitree-Go1",
+    "Mjlab-Velocity-Rough-Own",
   ]
 
   for task_id in rough_training_tasks:
@@ -165,6 +186,7 @@ def test_rough_velocity_play_has_curriculum_disabled() -> None:
     "Mjlab-Velocity-Rough-Unitree-G1",
     "Mjlab-Velocity-Rough-Unitree-G1-23Dof",
     "Mjlab-Velocity-Rough-Unitree-Go1",
+    "Mjlab-Velocity-Rough-Own",
   ]
 
   for task_id in rough_training_tasks:
@@ -229,6 +251,46 @@ def test_g1_23dof_velocity_has_correct_action_scale(
     joint_pos_action = cfg.actions["joint_pos"]
     assert isinstance(joint_pos_action, JointPositionActionCfg)
     assert joint_pos_action.scale == G1_23DOF_ACTION_SCALE
+
+
+def test_own_velocity_has_correct_action_scale(
+  own_velocity_task_ids: list[str],
+) -> None:
+  """Own velocity tasks should use their isolated action scale."""
+  for task_id in own_velocity_task_ids:
+    cfg = load_env_cfg(task_id)
+    joint_pos_action = cfg.actions["joint_pos"]
+    assert isinstance(joint_pos_action, JointPositionActionCfg)
+    assert joint_pos_action.scale == OWN_ACTION_SCALE
+
+
+def test_own_velocity_uses_own_asset(
+  own_velocity_task_ids: list[str],
+) -> None:
+  """Own tasks should use the Own MJCF."""
+  for task_id in own_velocity_task_ids:
+    cfg = load_env_cfg(task_id)
+    assert cfg.scene.entities["robot"].spec_fn is own_constants.get_spec
+
+
+def test_own_velocity_has_stability_reward_weights(
+  own_velocity_task_ids: list[str],
+) -> None:
+  """Own velocity tasks should start from the copied stability baseline."""
+  for task_id in own_velocity_task_ids:
+    cfg = load_env_cfg(task_id)
+
+    assert cfg.rewards["track_linear_velocity"].weight == 1.0
+    assert cfg.rewards["track_angular_velocity"].weight == 1.0
+    assert cfg.rewards["track_angular_velocity"].params["xy_weight"] == 0.05
+    assert "upright" not in cfg.rewards
+    assert cfg.rewards["body_orientation_l2"].weight == -1.0
+    assert cfg.rewards["body_orientation_l2"].func is mdp.body_orientation_l2
+    assert cfg.rewards["pose"].params["walking_threshold"] == 0.1
+    assert cfg.rewards["body_ang_vel"].weight == -0.05
+    assert cfg.rewards["angular_momentum"].weight == -0.02
+    assert cfg.rewards["joint_acc_l2"].weight == -2.5e-7
+    assert cfg.rewards["joint_pos_limits"].weight == -10.0
 
 
 def test_g1_23dof_velocity_has_stability_reward_weights(

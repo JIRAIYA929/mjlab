@@ -4,6 +4,12 @@ from mjlab.asset_zoo.robots.i2rt_yam.yam_constants import (
 from mjlab.asset_zoo.robots.i2rt_yam.yam_constants import (
   get_yam_robot_cfg as get_yam_robot_cfg,
 )
+from mjlab.asset_zoo.robots.own.own_constants import (
+  OWN_ACTION_SCALE as OWN_ACTION_SCALE,
+)
+from mjlab.asset_zoo.robots.own.own_constants import (
+  get_own_robot_cfg as get_own_robot_cfg,
+)
 from mjlab.asset_zoo.robots.unitree_g1.g1_23dof_constants import (
   G1_23DOF_ACTION_SCALE as G1_23DOF_ACTION_SCALE,
 )
