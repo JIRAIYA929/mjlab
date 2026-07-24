@@ -10,6 +10,12 @@ from mjlab.asset_zoo.robots.own.own_constants import (
 from mjlab.asset_zoo.robots.own.own_constants import (
   get_own_robot_cfg as get_own_robot_cfg,
 )
+from mjlab.asset_zoo.robots.p1.p1_constants import (
+  P1_ACTION_SCALE as P1_ACTION_SCALE,
+)
+from mjlab.asset_zoo.robots.p1.p1_constants import (
+  get_p1_robot_cfg as get_p1_robot_cfg,
+)
 from mjlab.asset_zoo.robots.unitree_g1.g1_23dof_constants import (
   G1_23DOF_ACTION_SCALE as G1_23DOF_ACTION_SCALE,
 )

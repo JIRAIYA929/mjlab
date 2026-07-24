@@ -7,8 +7,10 @@ from mjlab.asset_zoo.robots import (
   G1_ACTION_SCALE,
   GO1_ACTION_SCALE,
   OWN_ACTION_SCALE,
+  P1_ACTION_SCALE,
 )
 from mjlab.asset_zoo.robots.own import own_constants
+from mjlab.asset_zoo.robots.p1 import p1_constants
 from mjlab.envs.mdp.actions import JointPositionActionCfg
 from mjlab.tasks.registry import list_tasks, load_env_cfg
 from mjlab.tasks.velocity import mdp
@@ -49,6 +51,12 @@ def go1_velocity_task_ids(velocity_task_ids: list[str]) -> list[str]:
 def own_velocity_task_ids(velocity_task_ids: list[str]) -> list[str]:
   """Get all Own velocity task IDs."""
   return [t for t in velocity_task_ids if t.endswith("-Own")]
+
+
+@pytest.fixture(scope="module")
+def p1_velocity_task_ids(velocity_task_ids: list[str]) -> list[str]:
+  """Get all P1 velocity task IDs."""
+  return [t for t in velocity_task_ids if t.endswith("-P1")]
 
 
 @pytest.fixture(scope="module")
@@ -123,6 +131,22 @@ def test_own_velocity_has_required_sensors(
     sensor_names = {sensor.name for sensor in cfg.scene.sensors}
     assert "feet_ground_contact" in sensor_names
     assert "self_collision" in sensor_names
+
+
+def test_p1_velocity_has_required_sensors(
+  p1_velocity_task_ids: list[str],
+) -> None:
+  """P1 tasks should define feet, self, and body-ground contacts."""
+  assert p1_velocity_task_ids
+  for task_id in p1_velocity_task_ids:
+    cfg = load_env_cfg(task_id)
+    assert cfg.scene.sensors is not None
+    sensor_names = {sensor.name for sensor in cfg.scene.sensors}
+    assert {
+      "feet_ground_contact",
+      "self_collision",
+      "body_ground_contact",
+    } <= sensor_names
 
 
 def test_flat_velocity_tasks_have_plane_terrain(
@@ -262,6 +286,40 @@ def test_own_velocity_has_correct_action_scale(
     joint_pos_action = cfg.actions["joint_pos"]
     assert isinstance(joint_pos_action, JointPositionActionCfg)
     assert joint_pos_action.scale == OWN_ACTION_SCALE
+
+
+def test_p1_velocity_uses_p1_asset_and_action_scale(
+  p1_velocity_task_ids: list[str],
+) -> None:
+  """P1 tasks should use the P1 model and motor-derived action scale."""
+  assert p1_velocity_task_ids
+  for task_id in p1_velocity_task_ids:
+    cfg = load_env_cfg(task_id)
+    assert cfg.scene.entities["robot"].spec_fn is p1_constants.get_spec
+    joint_pos_action = cfg.actions["joint_pos"]
+    assert isinstance(joint_pos_action, JointPositionActionCfg)
+    assert joint_pos_action.scale == P1_ACTION_SCALE
+
+
+def test_p1_velocity_has_stability_first_contract(
+  p1_velocity_task_ids: list[str],
+) -> None:
+  """P1 should use conservative commands and explicit fall detection."""
+  assert p1_velocity_task_ids
+  for task_id in p1_velocity_task_ids:
+    cfg = load_env_cfg(task_id)
+    twist_cmd = cfg.commands["twist"]
+    assert isinstance(twist_cmd, UniformVelocityCommandCfg)
+    assert twist_cmd.ranges.lin_vel_x == (-0.25, 0.5)
+    assert twist_cmd.ranges.lin_vel_y == (-0.1, 0.1)
+    assert twist_cmd.ranges.ang_vel_z == (-0.25, 0.25)
+    assert twist_cmd.rel_standing_envs == 0.2
+    assert {"fell_over", "base_too_low", "illegal_body_contact"} <= set(
+      cfg.terminations
+    )
+    assert cfg.rewards["body_orientation_l2"].weight == -2.0
+    assert cfg.rewards["foot_slip"].weight == -0.2
+    assert cfg.rewards["foot_gait"].params["period"] == 0.7
 
 
 def test_own_velocity_uses_own_asset(

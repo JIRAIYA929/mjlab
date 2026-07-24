@@ -8,6 +8,10 @@ Upcoming version (not yet released)
 Added
 ^^^^^
 
+- Added the 12-DoF P1 biped asset, including its visual meshes, simplified
+  training collision geometry, and motor-specific actuator parameters.
+- Added a stability-first flat-ground velocity tracking task and PPO
+  configuration for the P1 biped.
 - Added the Own humanoid asset with robot-specific actuator parameters and
   independently tunable flat/rough velocity tasks based on the Unitree G1
   23-DoF task baseline.
@@ -21,6 +25,10 @@ Added
 Changed
 ^^^^^^^
 
+- Updated the P1 asset with a white appearance, calibrated pelvis-to-sole
+  geometry, compact pitch-joint collisions, pelvis-mounted IMU sensors, root
+  angular momentum sensing, explicit hip contact exclusions, datasheet reducer
+  ratios, and G1-style parallel ankle actuator parameters.
 - Command delay on fusable actuators (ideal PD, DC motor) now applies one shared
   lag per environment across all fused actuators sharing a delay config, matching
   the built-in actuator path, rather than an independent lag per actuator group
