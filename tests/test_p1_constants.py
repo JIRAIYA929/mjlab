@@ -8,7 +8,6 @@ import pytest
 from mjlab.actuator import BuiltinPositionActuatorCfg
 from mjlab.asset_zoo.robots.p1 import p1_constants
 from mjlab.entity import Entity
-from mjlab.utils.actuator import ElectricActuator
 
 
 @pytest.fixture(scope="module")
@@ -49,83 +48,50 @@ def test_p1_initial_pose_is_inside_joint_limits(
 
 
 @pytest.mark.parametrize(
-  ("actuator", "armature", "velocity_limit", "effort_limit"),
-  (
-    (p1_constants.ACTUATOR_X8_P20_120, 0.057694582, 16.545721, 120.0),
-    (p1_constants.ACTUATOR_X6_P20_60, 0.025385616, 18.430677, 60.0),
-    (p1_constants.ACTUATOR_X4_P36_36, 0.03888, 11.623893, 34.0),
-  ),
-)
-def test_p1_motor_parameters(
-  actuator: ElectricActuator,
-  armature: float,
-  velocity_limit: float,
-  effort_limit: float,
-) -> None:
-  assert actuator.reflected_inertia == pytest.approx(armature)
-  assert actuator.velocity_limit == pytest.approx(velocity_limit)
-  assert actuator.effort_limit == pytest.approx(effort_limit)
-
-
-@pytest.mark.parametrize(
   ("actual", "expected"),
   (
-    (
-      (
-        p1_constants.REDUCTION_RATIO_X8_P20_120,
-        p1_constants.MASS_X8_P20_120,
-        p1_constants.RATED_TORQUE_X8_P20_120,
-        p1_constants.RATED_SPEED_X8_P20_120,
-      ),
-      (19.612, 1.4, 43.0, 13.299409),
-    ),
-    (
-      (
-        p1_constants.REDUCTION_RATIO_X6_P20_60,
-        p1_constants.MASS_X6_P20_60,
-        p1_constants.RATED_TORQUE_X6_P20_60,
-        p1_constants.RATED_SPEED_X6_P20_60,
-      ),
-      (19.612, 0.82, 20.0, 16.022123),
-    ),
-    (
-      (
-        p1_constants.REDUCTION_RATIO_X4_P36_36,
-        p1_constants.MASS_X4_P36_36,
-        p1_constants.RATED_TORQUE_X4_P36_36,
-        p1_constants.RATED_SPEED_X4_P36_36,
-      ),
-      (36.0, 0.36, 10.5, 8.69174),
-    ),
+    (p1_constants.ARMATURE_X8_P20_120, 0.057694582),
+    (p1_constants.ARMATURE_X6_P20_60, 0.025385616),
+    (p1_constants.ARMATURE_X4_P36_36, 0.03888),
   ),
 )
-def test_p1_datasheet_metadata(
-  actual: tuple[float, float, float, float],
-  expected: tuple[float, float, float, float],
-) -> None:
+def test_p1_reflected_inertias(actual: float, expected: float) -> None:
   assert actual == pytest.approx(expected)
 
 
 @pytest.mark.parametrize(
-  ("actuator_cfg", "stiffness", "damping", "armature"),
+  (
+    "actuator_cfg",
+    "stiffness",
+    "damping",
+    "armature",
+    "effort_limit",
+    "matched_count",
+  ),
   (
     (
       p1_constants.P1_ACTUATOR_X8_P20_120,
       p1_constants.STIFFNESS_X8_P20_120,
       p1_constants.DAMPING_X8_P20_120,
       p1_constants.ARMATURE_X8_P20_120,
+      p1_constants.PEAK_TORQUE_X8_P20_120,
+      4,
     ),
     (
       p1_constants.P1_ACTUATOR_X6_P20_60,
       p1_constants.STIFFNESS_X6_P20_60,
       p1_constants.DAMPING_X6_P20_60,
       p1_constants.ARMATURE_X6_P20_60,
+      p1_constants.PEAK_TORQUE_X6_P20_60,
+      4,
     ),
     (
-      p1_constants.P1_ACTUATOR_ANKLE,
-      p1_constants.STIFFNESS_X4_P36_36 * p1_constants.NUM_ANKLE_MOTORS_PER_LEG,
-      p1_constants.DAMPING_X4_P36_36 * p1_constants.NUM_ANKLE_MOTORS_PER_LEG,
+      p1_constants.P1_ACTUATOR_X4_P36_36,
+      p1_constants.STIFFNESS_X4_P36_36,
+      p1_constants.DAMPING_X4_P36_36,
       p1_constants.ARMATURE_X4_P36_36 * p1_constants.NUM_ANKLE_MOTORS_PER_LEG,
+      p1_constants.PEAK_TORQUE_X4_P36_36 * p1_constants.NUM_ANKLE_MOTORS_PER_LEG,
+      4,
     ),
   ),
 )
@@ -135,17 +101,18 @@ def test_p1_actuator_parameters(
   stiffness: float,
   damping: float,
   armature: float,
+  effort_limit: float,
+  matched_count: int,
 ) -> None:
-  matched_count = 0
-  effort_limit = actuator_cfg.effort_limit
-  assert effort_limit is not None
+  actual_matched_count = 0
+  assert actuator_cfg.effort_limit == effort_limit
   for actuator_id in range(p1_model.nu):
     actuator = p1_model.actuator(actuator_id)
     if not any(
       re.fullmatch(pattern, actuator.name) for pattern in actuator_cfg.target_names_expr
     ):
       continue
-    matched_count += 1
+    actual_matched_count += 1
     joint = p1_model.joint(actuator.name)
     assert actuator.gainprm[0] == pytest.approx(stiffness)
     assert actuator.biasprm[1] == pytest.approx(-stiffness)
@@ -153,13 +120,21 @@ def test_p1_actuator_parameters(
     assert actuator.forcerange[0] == pytest.approx(-effort_limit)
     assert actuator.forcerange[1] == pytest.approx(effort_limit)
     assert p1_model.dof_armature[joint.dofadr[0]] == pytest.approx(armature)
-  assert matched_count == 4
+  assert actual_matched_count == matched_count
+
+
+def test_p1_action_scales() -> None:
+  assert p1_constants.P1_ACTION_SCALE == {
+    r"hip_(roll|pitch|yaw)_[lr]_joint": 0.25,
+    r"knee_pitch_[lr]_joint": 0.25,
+    r"ankle_(pitch|roll)_[lr]_joint": 0.15,
+  }
 
 
 def test_p1_parallel_ankle_actuator_parameters() -> None:
   assert p1_constants.NUM_ANKLE_MOTORS_PER_LEG == 2
-  assert p1_constants.P1_ACTUATOR_ANKLE.effort_limit == pytest.approx(68.0)
-  assert p1_constants.P1_ACTUATOR_ANKLE.armature == pytest.approx(0.07776)
+  assert p1_constants.P1_ACTUATOR_X4_P36_36.effort_limit == pytest.approx(68.0)
+  assert p1_constants.P1_ACTUATOR_X4_P36_36.armature == pytest.approx(0.07776)
 
 
 @pytest.mark.parametrize(

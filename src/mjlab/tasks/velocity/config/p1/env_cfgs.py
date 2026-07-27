@@ -119,9 +119,8 @@ def p1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     body_ground_cfg,
   )
 
-  # 策略输出 12 维归一化关节位置动作，
-  # P1_ACTION_SCALE 根据各电机的峰值力矩和 PD 刚度分别计算，
-  # 最终目标位置为默认站姿加缩放后的策略动作。
+  # 策略输出 12 维关节位置动作。髋和膝的缩放为 0.25 rad，踝关节为
+  # 0.15 rad；最终目标位置为默认站姿加缩放后的策略动作。
   joint_pos_action = cfg.actions["joint_pos"]
   assert isinstance(joint_pos_action, JointPositionActionCfg)
   joint_pos_action.scale = P1_ACTION_SCALE
@@ -183,7 +182,7 @@ def p1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.events["reset_robot_joints"].params["velocity_range"] = (-0.1, 0.1)
 
   # 每 8～12 秒施加一次温和速度扰动，训练基础抗扰恢复能力。
-  cfg.events["push_robot"].interval_range_s = (8.0, 12.0)
+  cfg.events["push_robot"].interval_range_s = (5.0, 6.0)
   cfg.events["push_robot"].params["velocity_range"] = {
     "x": (-0.2, 0.2),
     "y": (-0.2, 0.2),
@@ -232,24 +231,24 @@ def p1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   # variable_posture 根据指令速度切换容差。站立时强约束默认姿态；行走时
   # 放宽 hip pitch 和 knee，保留较紧的 hip/ankle roll 以减少左右摇摆。
   # 每项 std 越小，该关节偏离默认站姿的代价越大。
-  cfg.rewards["pose"].weight = 0.5
+  cfg.rewards["pose"].weight = 0.4
   cfg.rewards["pose"].params["walking_threshold"] = 0.1
   cfg.rewards["pose"].params["running_threshold"] = 1.1
   cfg.rewards["pose"].params["std_standing"] = {".*": 0.05}
   cfg.rewards["pose"].params["std_walking"] = {
-    r".*hip_pitch.*": 0.25,
+    r".*hip_pitch.*": 0.28,
     r".*hip_roll.*": 0.12,
     r".*hip_yaw.*": 0.1,
-    r".*knee_pitch.*": 0.35,
-    r".*ankle_pitch.*": 0.15,
+    r".*knee_pitch.*": 0.4,
+    r".*ankle_pitch.*": 0.18,
     r".*ankle_roll.*": 0.08,
   }
   cfg.rewards["pose"].params["std_running"] = {
-    r".*hip_pitch.*": 0.3,
+    r".*hip_pitch.*": 0.35,
     r".*hip_roll.*": 0.15,
     r".*hip_yaw.*": 0.12,
-    r".*knee_pitch.*": 0.4,
-    r".*ankle_pitch.*": 0.18,
+    r".*knee_pitch.*": 0.5,
+    r".*ankle_pitch.*": 0.22,
     r".*ankle_roll.*": 0.1,
   }
 
@@ -279,10 +278,11 @@ def p1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   # 目标抬脚高度为 6 cm，同时约束运动过程和落脚时的峰值高度。
   cfg.rewards["foot_clearance"].weight = -1.0
   cfg.rewards["foot_clearance"].params["target_height"] = 0.06
-  cfg.rewards["foot_swing_height"].weight = -0.25
+  cfg.rewards["foot_swing_height"].weight = -1.0
   cfg.rewards["foot_swing_height"].params["target_height"] = 0.06
   # 脚与地面接触时惩罚水平速度，减少拖脚和打滑。
   cfg.rewards["foot_slip"].weight = -0.2
+  cfg.rewards["soft_landing"].weight = -1.0e-3
   for reward_name in ("foot_clearance", "foot_slip"):
     cfg.rewards[reward_name].params["asset_cfg"].site_names = _FOOT_SITE_NAMES
   # 零速度指令下要求回到默认站姿，避免原地踏步。
@@ -315,8 +315,7 @@ def p1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     },
   )
 
-  # 平地任务不需要地形难度课程，只逐步扩大速度范围。step 按环境控制步
-  # 计数；每次 PPO 迭代采样 24 步，因此 1500*24 约对应第 1500 次迭代。
+  # 平地任务不需要地形难度课程，只逐步扩大速度范围
   cfg.curriculum.pop("terrain_levels", None)
   cfg.curriculum["command_vel"].params["velocity_stages"] = [
     # 阶段 1：先学习站立、低速前进和小幅转向。
@@ -329,16 +328,16 @@ def p1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     # 阶段 2：加入更明显的横移、后退和转向。
     {
       "step": 3000 * 24,
-      "lin_vel_x": (-0.4, 0.7),
-      "lin_vel_y": (-0.15, 0.15),
-      "ang_vel_z": (-0.4, 0.4),
-    },
-    # 阶段 3：最终基本行走范围，最高前进速度为 0.8 m/s。
-    {
-      "step": 6000 * 24,
-      "lin_vel_x": (-0.5, 0.8),
+      "lin_vel_x": (-0.5, 1.0),
       "lin_vel_y": (-0.2, 0.2),
       "ang_vel_z": (-0.5, 0.5),
+    },
+    # 阶段 3：最终基本行走范围，最高前进速度为 1.5 m/s。
+    {
+      "step": 6000 * 24,
+      "lin_vel_x": (-0.75, 1.5),
+      "lin_vel_y": (-0.4, 0.4),
+      "ang_vel_z": (-0.75, 0.75),
     },
   ]
 
@@ -356,8 +355,8 @@ def p1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     cfg.events.pop("push_robot", None)
     cfg.curriculum = {}
     # play 直接开放训练课程的最终速度范围，便于完整测试策略。
-    twist_cmd.ranges.lin_vel_x = (-0.5, 0.8)
-    twist_cmd.ranges.lin_vel_y = (-0.2, 0.2)
-    twist_cmd.ranges.ang_vel_z = (-0.5, 0.5)
+    twist_cmd.ranges.lin_vel_x = (-0.75, 1.5)
+    twist_cmd.ranges.lin_vel_y = (-0.4, 0.4)
+    twist_cmd.ranges.ang_vel_z = (-0.75, 0.75)
 
   return cfg

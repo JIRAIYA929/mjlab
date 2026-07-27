@@ -25,6 +25,12 @@ Added
 Changed
 ^^^^^^^
 
+- Retuned the P1 joint position controllers by motor type: ``100/4`` for the
+  X8 hip roll/pitch motors, ``150/4`` for the X6 hip yaw/knee motors, and
+  ``80/4`` for the X4 ankle motors, with action scales of ``0.25``, ``0.25``,
+  and ``0.15`` respectively.
+- Removed unused P1 motor mass, rated-performance, and no-load-speed metadata
+  from the built-in position actuator configuration.
 - Updated the P1 asset with a white appearance, calibrated pelvis-to-sole
   geometry, compact pitch-joint collisions, pelvis-mounted IMU sensors, root
   angular momentum sensing, explicit hip contact exclusions, datasheet reducer

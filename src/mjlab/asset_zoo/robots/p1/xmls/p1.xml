@@ -17,7 +17,7 @@
   </default>
 
   <asset>
-    <material name="white" rgba="1 1 1 1"/>
+    <material name="white" rgba="0.7 0.7 0.7 1"/>
     <mesh name="pelvis_link" file="pelvis_link.STL"/>
     <mesh name="hip_roll_l_link" file="hip_roll_l_link.STL"/>
     <mesh name="hip_pitch_l_link" file="hip_pitch_l_link.STL"/>
