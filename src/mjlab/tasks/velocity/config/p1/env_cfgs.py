@@ -119,8 +119,7 @@ def p1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
     body_ground_cfg,
   )
 
-  # 策略输出 12 维关节位置动作。髋和膝的缩放为 0.25 rad，踝关节为
-  # 0.15 rad；最终目标位置为默认站姿加缩放后的策略动作。
+  # 策略输出 12 维关节位置动作
   joint_pos_action = cfg.actions["joint_pos"]
   assert isinstance(joint_pos_action, JointPositionActionCfg)
   joint_pos_action.scale = P1_ACTION_SCALE
@@ -181,7 +180,7 @@ def p1_flat_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   cfg.events["reset_robot_joints"].params["position_range"] = (-0.02, 0.02)
   cfg.events["reset_robot_joints"].params["velocity_range"] = (-0.1, 0.1)
 
-  # 每 8～12 秒施加一次温和速度扰动，训练基础抗扰恢复能力。
+  # 每 5～6 秒施加一次温和速度扰动，训练基础抗扰恢复能力。
   cfg.events["push_robot"].interval_range_s = (5.0, 6.0)
   cfg.events["push_robot"].params["velocity_range"] = {
     "x": (-0.2, 0.2),

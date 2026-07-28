@@ -27,10 +27,6 @@ def get_spec() -> mujoco.MjSpec:
 # Actuator config.
 ##
 
-# The datasheet inertias are treated as motor-side values in kg*cm^2 and
-# reflected to the joint output using the actual reducer ratios. Peak torque
-# bounds the position actuators. Unused datasheet metadata is omitted because
-# the built-in position actuator does not model thermal or torque-speed behavior.
 REDUCTION_RATIO_X8_P20_120 = 19.612
 ROTOR_INERTIA_X8_P20_120 = 1.5e-4
 ARMATURE_X8_P20_120 = reflected_inertia(
@@ -52,35 +48,49 @@ ARMATURE_X4_P36_36 = reflected_inertia(
 )
 PEAK_TORQUE_X4_P36_36 = 34.0
 
-STIFFNESS_X8_P20_120 = 100.0
-DAMPING_X8_P20_120 = 4.0
-STIFFNESS_X6_P20_60 = 150.0
-DAMPING_X6_P20_60 = 4.0
-STIFFNESS_X4_P36_36 = 80.0
-DAMPING_X4_P36_36 = 4.0
+STIFFNESS_HIP_PITCH_KNEE = 200.0
+DAMPING_HIP_PITCH_KNEE = 6.0
+STIFFNESS_HIP_ROLL_YAW = 150.0
+DAMPING_HIP_ROLL_YAW = 6.0
+STIFFNESS_ANKLE_MOTOR = 100.0
+DAMPING_ANKLE_MOTOR = 6.0
 
-P1_ACTUATOR_X8_P20_120 = BuiltinPositionActuatorCfg(
-  target_names_expr=(r"hip_roll_[lr]_joint", r"hip_pitch_[lr]_joint"),
-  stiffness=STIFFNESS_X8_P20_120,
-  damping=DAMPING_X8_P20_120,
+P1_ACTUATOR_HIP_PITCH = BuiltinPositionActuatorCfg(
+  target_names_expr=(r"hip_pitch_[lr]_joint",),
+  stiffness=STIFFNESS_HIP_PITCH_KNEE,
+  damping=DAMPING_HIP_PITCH_KNEE,
   effort_limit=PEAK_TORQUE_X8_P20_120,
   armature=ARMATURE_X8_P20_120,
 )
-P1_ACTUATOR_X6_P20_60 = BuiltinPositionActuatorCfg(
-  target_names_expr=(r"hip_yaw_[lr]_joint", r"knee_pitch_[lr]_joint"),
-  stiffness=STIFFNESS_X6_P20_60,
-  damping=DAMPING_X6_P20_60,
+P1_ACTUATOR_KNEE = BuiltinPositionActuatorCfg(
+  target_names_expr=(r"knee_pitch_[lr]_joint",),
+  stiffness=STIFFNESS_HIP_PITCH_KNEE,
+  damping=DAMPING_HIP_PITCH_KNEE,
   effort_limit=PEAK_TORQUE_X6_P20_60,
   armature=ARMATURE_X6_P20_60,
 )
-# Each ankle uses two parallel-coupled X4-P36-36 actuators to control pitch and
-# roll. As with the G1 asset, the exact configuration-dependent transmission is
-# unavailable, so use a nominal 1:1 mapping and sum both motors' properties.
+P1_ACTUATOR_HIP_ROLL = BuiltinPositionActuatorCfg(
+  target_names_expr=(r"hip_roll_[lr]_joint",),
+  stiffness=STIFFNESS_HIP_ROLL_YAW,
+  damping=DAMPING_HIP_ROLL_YAW,
+  effort_limit=PEAK_TORQUE_X8_P20_120,
+  armature=ARMATURE_X8_P20_120,
+)
+P1_ACTUATOR_HIP_YAW = BuiltinPositionActuatorCfg(
+  target_names_expr=(r"hip_yaw_[lr]_joint",),
+  stiffness=STIFFNESS_HIP_ROLL_YAW,
+  damping=DAMPING_HIP_ROLL_YAW,
+  effort_limit=PEAK_TORQUE_X6_P20_60,
+  armature=ARMATURE_X6_P20_60,
+)
+# Each ankle uses two parallel-coupled X4-P36-36 motors.
 NUM_ANKLE_MOTORS_PER_LEG = 2
-P1_ACTUATOR_X4_P36_36 = BuiltinPositionActuatorCfg(
+STIFFNESS_ANKLE_JOINT = STIFFNESS_ANKLE_MOTOR * NUM_ANKLE_MOTORS_PER_LEG
+DAMPING_ANKLE_JOINT = DAMPING_ANKLE_MOTOR * NUM_ANKLE_MOTORS_PER_LEG
+P1_ACTUATOR_ANKLE = BuiltinPositionActuatorCfg(
   target_names_expr=(r"ankle_pitch_[lr]_joint", r"ankle_roll_[lr]_joint"),
-  stiffness=STIFFNESS_X4_P36_36,
-  damping=DAMPING_X4_P36_36,
+  stiffness=STIFFNESS_ANKLE_JOINT,
+  damping=DAMPING_ANKLE_JOINT,
   effort_limit=PEAK_TORQUE_X4_P36_36 * NUM_ANKLE_MOTORS_PER_LEG,
   armature=ARMATURE_X4_P36_36 * NUM_ANKLE_MOTORS_PER_LEG,
 )
@@ -136,9 +146,11 @@ FEET_ONLY_COLLISION = CollisionCfg(
 
 P1_ARTICULATION = EntityArticulationInfoCfg(
   actuators=(
-    P1_ACTUATOR_X8_P20_120,
-    P1_ACTUATOR_X6_P20_60,
-    P1_ACTUATOR_X4_P36_36,
+    P1_ACTUATOR_HIP_PITCH,
+    P1_ACTUATOR_KNEE,
+    P1_ACTUATOR_HIP_ROLL,
+    P1_ACTUATOR_HIP_YAW,
+    P1_ACTUATOR_ANKLE,
   ),
   soft_joint_pos_limit_factor=0.9,
 )
@@ -155,9 +167,12 @@ def get_p1_robot_cfg() -> EntityCfg:
 
 
 P1_ACTION_SCALE = {
-  r"hip_(roll|pitch|yaw)_[lr]_joint": 0.25,
+  r"hip_pitch_[lr]_joint": 0.25,
   r"knee_pitch_[lr]_joint": 0.25,
-  r"ankle_(pitch|roll)_[lr]_joint": 0.15,
+  r"hip_roll_[lr]_joint": 0.1,
+  r"hip_yaw_[lr]_joint": 0.1,
+  r"ankle_pitch_[lr]_joint": 0.1,
+  r"ankle_roll_[lr]_joint": 0.1,
 }
 
 

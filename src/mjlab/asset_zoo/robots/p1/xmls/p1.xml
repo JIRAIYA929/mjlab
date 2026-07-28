@@ -17,7 +17,7 @@
   </default>
 
   <asset>
-    <material name="white" rgba="0.7 0.7 0.7 1"/>
+    <material name="white" rgba="1 1 1 1"/>
     <mesh name="pelvis_link" file="pelvis_link.STL"/>
     <mesh name="hip_roll_l_link" file="hip_roll_l_link.STL"/>
     <mesh name="hip_pitch_l_link" file="hip_pitch_l_link.STL"/>
@@ -47,22 +47,22 @@
 
       <body name="hip_roll_l_link" pos="0.03002 0.09 -0.0648"
         quat="0.9659258 0 0.258819 0">
-        <inertial pos="0.0603906 -0.02075955 0.00008270" mass="1.84357373"
-          fullinertia="0.00057268 0.00134505 0.00117867 0.00015166 -0.00000051 -0.00000037"/>
+        <inertial pos="0.06875776 0.02075955 0.00008271" mass="1.84357373"
+          fullinertia="0.00057268 0.00139778 0.00123139 -0.00014980 -0.00000196 0.00000037"/>
         <joint name="hip_roll_l_joint" axis="1 0 0" range="-0.6 0.6"/>
         <geom class="visual" mesh="hip_roll_l_link"/>
         <geom name="hip_roll_l_collision" class="collision" type="cylinder"
-          size="0.05 0.0375" pos="0.075 0.005 0" quat="0.7071068 0.7071068 0 0"/>
+          size="0.05 0.0375" pos="0.075 -0.005 0" quat="0.7071068 0.7071068 0 0"/>
 
-        <body name="hip_pitch_l_link" pos="0.076 -0.035 0"
+        <body name="hip_pitch_l_link" pos="0.076 0.035 0"
           quat="0.9659258 0 -0.258819 0">
-          <inertial pos="0 0.00443165 -0.03247590" mass="0.30277611"
-            fullinertia="0.00040026 0.00037069 0.00020693 0 0 0.00011064"/>
+          <inertial pos="0 -0.00443165 -0.03247590" mass="0.30277611"
+            fullinertia="0.00040026 0.00037069 0.00020693 0 0 -0.00011064"/>
           <joint name="hip_pitch_l_joint" axis="0 1 0" range="-1.0 0.5"/>
           <geom class="visual" mesh="hip_pitch_l_link"/>
           <geom name="hip_pitch_l_collision" class="collision" type="sphere" size="0.005"/>
 
-          <body name="hip_yaw_l_link" pos="0 0.024 -0.063">
+          <body name="hip_yaw_l_link" pos="0 -0.024 -0.063">
             <inertial pos="-0.00004624 0.00328905 -0.08825309" mass="2.43873932"
               fullinertia="0.00875946 0.00881621 0.00272891 0.00000599 -0.00000620 0.00042315"/>
             <joint name="hip_yaw_l_joint" axis="0 0 1" range="-0.5 0.5"/>
@@ -105,22 +105,22 @@
 
       <body name="hip_roll_r_link" pos="0.0302 -0.09 -0.0648"
         quat="0.9659258 0 0.258819 0">
-        <inertial pos="0.06875776 0.02075955 0.00008271" mass="1.84357373"
-          fullinertia="0.00057268 0.00139778 0.00123139 -0.00014980 -0.00000196 0.00000037"/>
+        <inertial pos="0.0603906 -0.02075955 0.00008270" mass="1.84357373"
+          fullinertia="0.00057268 0.00134505 0.00117867 0.00015166 -0.00000051 -0.00000037"/>
         <joint name="hip_roll_r_joint" axis="1 0 0" range="-0.6 0.6"/>
         <geom class="visual" mesh="hip_roll_r_link"/>
         <geom name="hip_roll_r_collision" class="collision" type="cylinder"
-          size="0.05 0.0375" pos="0.075 -0.005 0" quat="0.7071068 0.7071068 0 0"/>
+          size="0.05 0.0375" pos="0.075 0.005 0" quat="0.7071068 0.7071068 0 0"/>
 
-        <body name="hip_pitch_r_link" pos="0.076 0.035 0"
+        <body name="hip_pitch_r_link" pos="0.076 -0.035 0"
           quat="0.9659258 0 -0.258819 0">
-          <inertial pos="0 -0.00443165 -0.03247590" mass="0.30277611"
-            fullinertia="0.00040026 0.00037069 0.00020693 0 0 -0.00011064"/>
+          <inertial pos="0 0.00443165 -0.03247590" mass="0.30277611"
+            fullinertia="0.00040026 0.00037069 0.00020693 0 0 0.00011064"/>
           <joint name="hip_pitch_r_joint" axis="0 1 0" range="-1.0 0.5"/>
           <geom class="visual" mesh="hip_pitch_r_link"/>
           <geom name="hip_pitch_r_collision" class="collision" type="sphere" size="0.005"/>
 
-          <body name="hip_yaw_r_link" pos="0 -0.024 -0.063">
+          <body name="hip_yaw_r_link" pos="0 0.024 -0.063">
             <inertial pos="0 -0.00315274 -0.08823981" mass="2.43873932"
               fullinertia="0.00875833 0.00881266 0.00273078 0.00000230 -0.00000065 -0.00042669"/>
             <joint name="hip_yaw_r_joint" axis="0 0 1" range="-0.5 0.5"/>

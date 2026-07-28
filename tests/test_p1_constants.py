@@ -70,25 +70,41 @@ def test_p1_reflected_inertias(actual: float, expected: float) -> None:
   ),
   (
     (
-      p1_constants.P1_ACTUATOR_X8_P20_120,
-      p1_constants.STIFFNESS_X8_P20_120,
-      p1_constants.DAMPING_X8_P20_120,
+      p1_constants.P1_ACTUATOR_HIP_PITCH,
+      p1_constants.STIFFNESS_HIP_PITCH_KNEE,
+      p1_constants.DAMPING_HIP_PITCH_KNEE,
       p1_constants.ARMATURE_X8_P20_120,
       p1_constants.PEAK_TORQUE_X8_P20_120,
-      4,
+      2,
     ),
     (
-      p1_constants.P1_ACTUATOR_X6_P20_60,
-      p1_constants.STIFFNESS_X6_P20_60,
-      p1_constants.DAMPING_X6_P20_60,
+      p1_constants.P1_ACTUATOR_KNEE,
+      p1_constants.STIFFNESS_HIP_PITCH_KNEE,
+      p1_constants.DAMPING_HIP_PITCH_KNEE,
       p1_constants.ARMATURE_X6_P20_60,
       p1_constants.PEAK_TORQUE_X6_P20_60,
-      4,
+      2,
     ),
     (
-      p1_constants.P1_ACTUATOR_X4_P36_36,
-      p1_constants.STIFFNESS_X4_P36_36,
-      p1_constants.DAMPING_X4_P36_36,
+      p1_constants.P1_ACTUATOR_HIP_ROLL,
+      p1_constants.STIFFNESS_HIP_ROLL_YAW,
+      p1_constants.DAMPING_HIP_ROLL_YAW,
+      p1_constants.ARMATURE_X8_P20_120,
+      p1_constants.PEAK_TORQUE_X8_P20_120,
+      2,
+    ),
+    (
+      p1_constants.P1_ACTUATOR_HIP_YAW,
+      p1_constants.STIFFNESS_HIP_ROLL_YAW,
+      p1_constants.DAMPING_HIP_ROLL_YAW,
+      p1_constants.ARMATURE_X6_P20_60,
+      p1_constants.PEAK_TORQUE_X6_P20_60,
+      2,
+    ),
+    (
+      p1_constants.P1_ACTUATOR_ANKLE,
+      p1_constants.STIFFNESS_ANKLE_JOINT,
+      p1_constants.DAMPING_ANKLE_JOINT,
       p1_constants.ARMATURE_X4_P36_36 * p1_constants.NUM_ANKLE_MOTORS_PER_LEG,
       p1_constants.PEAK_TORQUE_X4_P36_36 * p1_constants.NUM_ANKLE_MOTORS_PER_LEG,
       4,
@@ -125,16 +141,21 @@ def test_p1_actuator_parameters(
 
 def test_p1_action_scales() -> None:
   assert p1_constants.P1_ACTION_SCALE == {
-    r"hip_(roll|pitch|yaw)_[lr]_joint": 0.25,
+    r"hip_pitch_[lr]_joint": 0.25,
     r"knee_pitch_[lr]_joint": 0.25,
-    r"ankle_(pitch|roll)_[lr]_joint": 0.15,
+    r"hip_roll_[lr]_joint": 0.1,
+    r"hip_yaw_[lr]_joint": 0.1,
+    r"ankle_pitch_[lr]_joint": 0.1,
+    r"ankle_roll_[lr]_joint": 0.1,
   }
 
 
 def test_p1_parallel_ankle_actuator_parameters() -> None:
   assert p1_constants.NUM_ANKLE_MOTORS_PER_LEG == 2
-  assert p1_constants.P1_ACTUATOR_X4_P36_36.effort_limit == pytest.approx(68.0)
-  assert p1_constants.P1_ACTUATOR_X4_P36_36.armature == pytest.approx(0.07776)
+  assert p1_constants.P1_ACTUATOR_ANKLE.stiffness == pytest.approx(200.0)
+  assert p1_constants.P1_ACTUATOR_ANKLE.damping == pytest.approx(12.0)
+  assert p1_constants.P1_ACTUATOR_ANKLE.effort_limit == pytest.approx(68.0)
+  assert p1_constants.P1_ACTUATOR_ANKLE.armature == pytest.approx(0.07776)
 
 
 @pytest.mark.parametrize(
@@ -184,6 +205,42 @@ def test_p1_foot_collision_geoms(p1_model: mujoco.MjModel) -> None:
 
 def test_p1_visual_meshes_are_loaded(p1_model: mujoco.MjModel) -> None:
   assert p1_model.nmesh == 13
+
+
+def test_p1_hip_assembly_matches_revised_urdf(
+  p1_xml_model: mujoco.MjModel,
+) -> None:
+  expected_poses = {
+    "hip_roll_l_link": (
+      (0.03002, 0.09, -0.0648),
+      (0.06875776, 0.02075955, 0.00008271),
+    ),
+    "hip_pitch_l_link": (
+      (0.076, 0.035, 0.0),
+      (0.0, -0.00443165, -0.03247590),
+    ),
+    "hip_yaw_l_link": (
+      (0.0, -0.024, -0.063),
+      (-0.00004624, 0.00328905, -0.08825309),
+    ),
+    "hip_roll_r_link": (
+      (0.0302, -0.09, -0.0648),
+      (0.0603906, -0.02075955, 0.00008270),
+    ),
+    "hip_pitch_r_link": (
+      (0.076, -0.035, 0.0),
+      (0.0, 0.00443165, -0.03247590),
+    ),
+    "hip_yaw_r_link": (
+      (0.0, 0.024, -0.063),
+      (0.0, -0.00315274, -0.08823981),
+    ),
+  }
+
+  for body_name, (expected_pos, expected_ipos) in expected_poses.items():
+    body = p1_xml_model.body(body_name)
+    assert body.pos == pytest.approx(expected_pos)
+    assert body.ipos == pytest.approx(expected_ipos)
 
 
 def test_p1_xml_geometry_and_appearance(p1_xml_model: mujoco.MjModel) -> None:
